@@ -23,9 +23,8 @@ html,body{
   display:flex;
   justify-content:center;
   align-items:center;
-  transform-origin:top center;
-  max-width:1000px;
   width:100%;
+  height:100%;
 }
 
 /* ── Machine outer shell ── */
@@ -34,10 +33,14 @@ html,body{
   background:#0c0723;
   border:none;
   border-radius:42px;
-  padding:12px;
+  padding:16px;
   box-shadow:0 0 30px rgba(90,30,200,0.12),0 0 60px rgba(90,30,200,0.06);
   cursor:pointer;
   user-select:none;
+  width:100%;
+  max-width:900px;
+  height:460px;
+  display:flex;
 }
 
 /* Win pulse ring */
@@ -85,13 +88,15 @@ html,body{
 .inner-frame{
   position:relative;
   display:flex;
-  align-items:center;
-  gap:24px;
-  padding:32px;
-  border-radius:32px;
+  align-items:stretch;
+  gap:16px;
+  padding:24px 20px;
+  border-radius:28px;
   border:1px solid #20154a;
   background:linear-gradient(160deg,#1a0f52 0%,#100830 45%,#08051c 100%);
   box-shadow:inset 0 1px 0 rgba(200,160,255,0.08),inset 0 0 50px rgba(0,0,0,0.5);
+  width:100%;
+  flex:1;
 }
 /* Top neon line */
 .inner-frame::before{
@@ -108,14 +113,18 @@ html,body{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:8px;
+  gap:10px;
+  flex:1;
+  min-width:0;
 }
 
 /* ── Reel window ── */
 .reel-window{
   position:relative;
-  width:200px;height:260px;
-  border-radius:14px;
+  width:100%;
+  flex:1;
+  min-height:0;
+  border-radius:18px;
   overflow:hidden;
   background:linear-gradient(160deg,#070218 0%,#04010f 100%);
   border:1.5px solid rgba(100,50,210,0.58);
@@ -153,12 +162,12 @@ html,body{
   pointer-events:none;z-index:2;
   background:linear-gradient(
     to bottom,
-    rgba(4,1,16,0.92) 0%,
-    rgba(4,1,16,0.08) 20%,
-    transparent 33%,
-    transparent 67%,
-    rgba(4,1,16,0.08) 80%,
-    rgba(4,1,16,0.92) 100%
+    rgba(4,1,16,1) 0%,
+    rgba(4,1,16,1) 28%,
+    transparent 40%,
+    transparent 60%,
+    rgba(4,1,16,1) 72%,
+    rgba(4,1,16,1) 100%
   );
 }
 
@@ -168,10 +177,12 @@ html,body{
   letter-spacing:0.12em;
   text-transform:uppercase;
   text-align:center;white-space:nowrap;
-  min-width:170px;
   color:rgba(140,100,230,0.5);
   filter:none;
   transition:color 0.3s,filter 0.3s;
+  width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 .reel-label.won{
   color:rgba(215,185,255,0.95);
@@ -181,8 +192,10 @@ html,body{
 /* ── Lever housing ── */
 .lever-housing{
   position:relative;
-  width:80px;height:112px;
+  width:60px;
   flex-shrink:0;
+  align-self:center;
+  height:112px;
   background:#11033b;
   border:3px solid #1c0657;
   border-radius:16px;
@@ -228,16 +241,21 @@ html,body{
 /* ── Lever + label wrapper ── */
 .lever-col{
   display:flex;flex-direction:column;
-  align-items:center;gap:10px;
-  align-self:center;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  align-self:stretch;
+  flex-shrink:0;
 }
 .lever-cta{
-  font-size:15px;font-weight:500;
+  font-size:11px;font-weight:500;
   letter-spacing:0.14em;text-transform:uppercase;
   color:rgba(255,255,255,0.85);
   text-align:center;line-height:1.3;
   user-select:none;pointer-events:none;
 }
+
+
 </style>
 </head>
 <body>
@@ -315,43 +333,43 @@ const ICONS = [
 ];
 
 // ─────────────────────────────────────────────
-//  CONSTANTS
+//  CONSTANTS (mirrors React source exactly)
 // ─────────────────────────────────────────────
-const FRAME_H   = 260;
-const ITEM_H    = 200;
-const OFFSET    = (FRAME_H - ITEM_H) / 2;
-const NUM_ICONS = 13;
-const NUM_REPS  = 5;
-const LOGO_IDX  = 12;
+const ITEM_H     = 200;  // fixed reel-item height in px
+const NUM_ICONS  = 13;
+const NUM_REPS   = 5;
+const LOGO_IDX   = 12;
 
 const INITIAL_ICON_IDX = [0, 5, 3];
-const INITIAL_Y        = INITIAL_ICON_IDX.map(i => OFFSET - i * ITEM_H);
 const INITIAL_NAMES    = ['ID Verification', 'AML Monitoring', 'KYC Onboarding'];
-const TARGET_Y         = [38, 51, 64].map(i => OFFSET - i * ITEM_H);
-const DURATIONS        = [2800, 3500, 4200];
 
-function easeOutQuint(t){ return 1 - Math.pow(1-t, 5); }
+// Logo at rep2/3/4 for staggered stop
+const TARGET_ITEM_IDX = [38, 51, 64]; // absolute item indices in strip
+const DURATIONS  = [2800, 3500, 4200];
 
-// ─────────────────────────────────────────────
-//  CACHED DOM REFS
-// ─────────────────────────────────────────────
-const $root     = document.getElementById('scaleRoot');
-const $machine  = document.getElementById('slotMachine');
-const $winGlow  = document.getElementById('winGlow');
-const $winFlash = document.getElementById('winFlash');
-const $sparkles = document.getElementById('sparkleContainer');
-const $shaft    = document.getElementById('leverShaft');
-const $ball     = document.getElementById('leverBall');
-const strips    = [0,1,2].map(i => document.getElementById('strip'+i));
-const reels     = [0,1,2].map(i => document.getElementById('reel'+i));
-const labels    = [0,1,2].map(i => document.getElementById('label'+i));
+function easeOutQuint(t){ return 1 - Math.pow(1 - t, 5); }
+
+// Compute offset so the target item is centred in the reel window
+function getOffset(reelIdx){
+  const win = document.getElementById('reel'+reelIdx);
+  const frameH = win ? win.clientHeight : 260;
+  return (frameH - ITEM_H) / 2;
+}
+
+function getInitialY(reelIdx){
+  return getOffset(reelIdx) - INITIAL_ICON_IDX[reelIdx] * ITEM_H;
+}
+function getTargetY(reelIdx){
+  return getOffset(reelIdx) - TARGET_ITEM_IDX[reelIdx] * ITEM_H;
+}
 
 // ─────────────────────────────────────────────
 //  BUILD STRIP DOM
 // ─────────────────────────────────────────────
 function buildStrips(){
   for(let r=0;r<3;r++){
-    const frag = document.createDocumentFragment();
+    const strip = document.getElementById('strip'+r);
+    strip.innerHTML = '';
     for(let rep=0;rep<NUM_REPS;rep++){
       for(let idx=0;idx<NUM_ICONS;idx++){
         const item = document.createElement('div');
@@ -360,64 +378,78 @@ function buildStrips(){
         icon.className = idx===LOGO_IDX ? 'sm-icon logo-icon' : 'sm-icon';
         icon.innerHTML = ICONS[idx].svg;
         item.appendChild(icon);
-        frag.appendChild(item);
+        strip.appendChild(item);
       }
     }
-    strips[r].innerHTML = '';
-    strips[r].appendChild(frag);
-    strips[r].style.transform = `translateY(${INITIAL_Y[r]}px)`;
+    strip.style.transform = `translateY(${getInitialY(r)}px)`;
   }
 }
 
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let isSpinning     = false;
-let currentY       = [...INITIAL_Y];
-let autoTimer      = null;
-let rafIds         = [null,null,null];
+let isSpinning  = false;
+let currentY    = [0,1,2].map(i => getInitialY(i));
+let autoTimer   = null;
+let rafIds      = [null,null,null];
 let labelIntervals = [];
+let sparkleId   = 0;
 
 // ─────────────────────────────────────────────
 //  RESET
 // ─────────────────────────────────────────────
 function resetStrips(){
   for(let i=0;i<3;i++){
-    strips[i].style.cssText += ';transition:none;filter:none';
-    strips[i].style.transform = `translateY(${INITIAL_Y[i]}px)`;
+    const strip = document.getElementById('strip'+i);
+    strip.style.transition = 'none';
+    strip.style.transform  = `translateY(${getInitialY(i)}px)`;
+    strip.style.filter     = 'none';
+    currentY[i] = getInitialY(i);
   }
-  currentY = [...INITIAL_Y];
 }
 
 // ─────────────────────────────────────────────
 //  SPARKLES
 // ─────────────────────────────────────────────
 function createSparkles(){
-  $sparkles.innerHTML = '';
+  const container = document.getElementById('sparkleContainer');
+  container.innerHTML = '';
   const colors = ['#c890ff','#a060f8','#ffffff','#e0b8ff','#8040e8'];
-  const frag = document.createDocumentFragment();
   for(let n=0;n<22;n++){
-    const ang  = Math.random()*Math.PI*2;
-    const dst  = 30 + Math.random()*80;
-    const size = 4 + Math.random()*5;
-    const el   = document.createElement('div');
+    const ang = Math.random()*Math.PI*2;
+    const dst = 30 + Math.random()*80;
+    const dx  = Math.cos(ang)*dst;
+    const dy  = Math.sin(ang)*dst;
+    const size= 4 + Math.random()*5;
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    const delay = Math.random()*0.25;
+    const dur   = 0.7 + Math.random()*0.35;
+    const el    = document.createElement('div');
     el.className = 'sparkle';
-    el.style.cssText = `width:${size}px;height:${size}px;left:${10+Math.random()*80}%;top:${10+Math.random()*80}%;background:${colors[Math.random()*colors.length|0]};--dx:${Math.cos(ang)*dst}px;--dy:${Math.sin(ang)*dst}px;animation:sparkleFly ${0.7+Math.random()*0.35}s ease-out ${Math.random()*0.25}s forwards`;
-    frag.appendChild(el);
+    el.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${10+Math.random()*80}%;
+      top:${10+Math.random()*80}%;
+      background:${color};
+      --dx:${dx}px;--dy:${dy}px;
+      animation:sparkleFly ${dur}s ease-out ${delay}s forwards;
+    `;
+    container.appendChild(el);
+    sparkleId++;
   }
-  $sparkles.appendChild(frag);
-  setTimeout(()=>{ $sparkles.innerHTML=''; }, 1100);
+  setTimeout(()=>{ container.innerHTML=''; }, 1100);
 }
 
 // ─────────────────────────────────────────────
 //  LABELS
 // ─────────────────────────────────────────────
 function setLabel(i, text, won){
-  labels[i].textContent = text;
-  labels[i].className   = won ? 'reel-label won' : 'reel-label';
+  const el = document.getElementById('label'+i);
+  el.textContent = text;
+  el.className   = 'reel-label' + (won ? ' won' : '');
 }
 function setReelWon(i, won){
-  reels[i].className = won ? 'reel-window won' : 'reel-window';
+  document.getElementById('reel'+i).className = 'reel-window' + (won ? ' won' : '');
   setLabel(i, won ? 'Identomat' : INITIAL_NAMES[i], won);
 }
 
@@ -434,33 +466,45 @@ function spin(){
   labelIntervals.forEach(clearInterval);
   labelIntervals = [];
 
-  $shaft.classList.add('active');
-  $ball.classList.add('active');
-  setTimeout(()=>{ $shaft.classList.remove('active'); $ball.classList.remove('active'); }, 420);
+  // Lever press
+  document.getElementById('leverShaft').classList.add('active');
+  document.getElementById('leverBall').classList.add('active');
+  setTimeout(()=>{
+    document.getElementById('leverShaft').classList.remove('active');
+    document.getElementById('leverBall').classList.remove('active');
+  }, 420);
 
+  // Reset won states
   for(let i=0;i<3;i++) setReelWon(i, false);
-  $winGlow.classList.remove('active');
-  $winFlash.classList.remove('active');
+  document.getElementById('winGlow').classList.remove('active');
+  document.getElementById('winFlash').classList.remove('active');
 
+  // Cycle labels while spinning
   const ticks = [1,7,3];
   labelIntervals = [0,1,2].map(i =>
-    setInterval(()=>{ ticks[i]=(ticks[i]+1)%(NUM_ICONS-1); setLabel(i,ICONS[ticks[i]].name,false); }, 90)
+    setInterval(()=>{
+      ticks[i] = (ticks[i]+1) % (NUM_ICONS-1);
+      setLabel(i, ICONS[ticks[i]].name, false);
+    }, 90)
   );
 
   let doneCount = 0;
+
   [0,1,2].forEach(i => {
-    const strip    = strips[i];
-    const fromY    = currentY[i];
-    const toY      = TARGET_Y[i];
-    const dur      = DURATIONS[i];
-    const t0       = performance.now();
+    const strip     = document.getElementById('strip'+i);
+    const fromY     = currentY[i];
+    const toY       = getTargetY(i);
+    const duration  = DURATIONS[i];
+    const startTime = performance.now();
 
     function frame(now){
-      const t    = Math.min((now-t0)/dur, 1);
-      const y    = fromY + (toY-fromY)*easeOutQuint(t);
-      const blur = Math.min(5*Math.pow(1-t,4)*2.8, 13);
+      const t = Math.min((now - startTime)/duration, 1);
+      const y = fromY + (toY - fromY) * easeOutQuint(t);
       strip.style.transform = `translateY(${y}px)`;
-      strip.style.filter    = blur > 0.5 ? `blur(${blur.toFixed(1)}px)` : 'none';
+
+      const speed  = 5*Math.pow(1-t, 4);
+      const blurPx = Math.min(speed*2.8, 13);
+      strip.style.filter = blurPx > 0.5 ? `blur(${blurPx.toFixed(1)}px)` : 'none';
 
       if(t < 1){
         rafIds[i] = requestAnimationFrame(frame);
@@ -468,20 +512,31 @@ function spin(){
         strip.style.transform = `translateY(${toY}px)`;
         strip.style.filter    = 'none';
         currentY[i]           = toY;
+
         clearInterval(labelIntervals[i]);
         setReelWon(i, true);
-        if(++doneCount === 3){
-          $winGlow.classList.add('active');
-          $winFlash.classList.remove('active');
-          void $winFlash.offsetWidth;
-          $winFlash.classList.add('active');
+
+        doneCount++;
+        if(doneCount === 3){
+          // Win effects
+          document.getElementById('winGlow').classList.add('active');
+          const flash = document.getElementById('winFlash');
+          flash.classList.remove('active');
+          void flash.offsetWidth; // force reflow
+          flash.classList.add('active');
+
           createSparkles();
+
+          // Notify parent Webflow page
           window.parent.postMessage({type:'SLOT_WIN'}, '*');
+
           autoTimer = setTimeout(()=>{
-            $winGlow.classList.remove('active');
+            document.getElementById('winGlow').classList.remove('active');
             for(let j=0;j<3;j++) setReelWon(j, false);
             resetStrips();
-            requestAnimationFrame(()=>requestAnimationFrame(()=>{ isSpinning=false; }));
+            requestAnimationFrame(()=>requestAnimationFrame(()=>{
+              isSpinning = false;
+            }));
           }, 2800);
         }
       }
@@ -491,23 +546,41 @@ function spin(){
 }
 
 // ─────────────────────────────────────────────
-//  RESPONSIVE SCALING
+//  SCALE DOWN BELOW LANDSCAPE MOBILE (812px)
 // ─────────────────────────────────────────────
-function scaleToFit(){
-  const vw    = window.innerWidth;
-  const natW  = $machine.scrollWidth;
-  const scale = Math.min(vw/natW, 1);
-  $root.style.transform = scale < 1 ? `scale(${scale})` : '';
+function scaleIfNeeded(){
+  const machine = document.getElementById('slotMachine');
+  if(!machine) return;
+  // Remove scale temporarily to measure natural width
+  machine.style.transform = '';
+  machine.style.marginBottom = '';
+  const naturalW = machine.offsetWidth;
+  const naturalH = machine.offsetHeight;
+  const vw = window.innerWidth;
+  if(vw < 812){
+    const scale = vw / naturalW;
+    machine.style.transformOrigin = 'top center';
+    machine.style.transform = `scale(${scale})`;
+    machine.style.marginBottom = `${(naturalH * scale - naturalH)}px`;
+  }
 }
 
 // ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
 buildStrips();
-scaleToFit();
-window.addEventListener('resize', scaleToFit);
-document.getElementById('leverHousing').addEventListener('click', e=>{ e.stopPropagation(); spin(); });
-$machine.addEventListener('click', spin);
+scaleIfNeeded();
+
+window.addEventListener('resize', ()=>{
+  if(!isSpinning) resetStrips();
+  scaleIfNeeded();
+});
+
+document.getElementById('leverHousing').addEventListener('click', e=>{
+  e.stopPropagation();
+  spin();
+});
+document.getElementById('slotMachine').addEventListener('click', spin);
 </script>
 </body>
 </html>
