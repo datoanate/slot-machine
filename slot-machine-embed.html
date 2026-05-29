@@ -15,6 +15,7 @@ html,body{
   justify-content:center;
   align-items:center;
   font-family:'DM Mono','Courier New',monospace;
+  overflow:hidden;
 }
 
 /* ── Scale wrapper for responsive fit ── */
@@ -542,14 +543,6 @@ function scaleToFit(){
 buildStrips();
 scaleToFit();
 window.addEventListener('resize', scaleToFit);
-
-// ── Tell parent iframe to hug content height ──
-function postHeight(){
-  const h = document.getElementById('slotMachine').getBoundingClientRect().height;
-  window.parent.postMessage({type:'SLOT_HEIGHT', height: Math.ceil(h) + 32}, '*');
-}
-postHeight();
-window.addEventListener('resize', postHeight);
 
 document.getElementById('leverHousing').addEventListener('click', e=>{
   e.stopPropagation();
