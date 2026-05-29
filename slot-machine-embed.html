@@ -25,6 +25,7 @@ html,body{
   align-items:center;
   width:100%;
   height:100%;
+  overflow:hidden;
 }
 
 /* ── Machine outer shell ── */
@@ -548,19 +549,20 @@ function spin(){
 // ─────────────────────────────────────────────
 //  SCALE DOWN BELOW LANDSCAPE MOBILE (812px)
 // ─────────────────────────────────────────────
+const NATURAL_W = 900; // matches max-width in CSS
+
 function scaleIfNeeded(){
   const machine = document.getElementById('slotMachine');
   if(!machine) return;
-  // Remove scale temporarily to measure natural width
   machine.style.transform = '';
   machine.style.marginBottom = '';
-  const naturalW = machine.offsetWidth;
-  const naturalH = machine.offsetHeight;
+
   const vw = window.innerWidth;
-  if(vw < 812){
-    const scale = vw / naturalW;
+  if(vw < NATURAL_W){
+    const scale = vw / NATURAL_W;
     machine.style.transformOrigin = 'top center';
     machine.style.transform = `scale(${scale})`;
+    const naturalH = 460;
     machine.style.marginBottom = `${(naturalH * scale - naturalH)}px`;
   }
 }
