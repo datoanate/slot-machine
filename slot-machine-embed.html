@@ -315,32 +315,43 @@ const ICONS = [
 ];
 
 // ─────────────────────────────────────────────
-//  CONSTANTS (mirrors React source exactly)
+//  CONSTANTS
 // ─────────────────────────────────────────────
-const FRAME_H    = 260;
-const ITEM_H     = 200;
-const OFFSET     = (FRAME_H - ITEM_H) / 2; // 30
-const NUM_ICONS  = 13;
-const NUM_REPS   = 5;
-const LOGO_IDX   = 12;
+const FRAME_H   = 260;
+const ITEM_H    = 200;
+const OFFSET    = (FRAME_H - ITEM_H) / 2;
+const NUM_ICONS = 13;
+const NUM_REPS  = 5;
+const LOGO_IDX  = 12;
 
 const INITIAL_ICON_IDX = [0, 5, 3];
-const INITIAL_Y        = INITIAL_ICON_IDX.map(idx => OFFSET - idx * ITEM_H);
+const INITIAL_Y        = INITIAL_ICON_IDX.map(i => OFFSET - i * ITEM_H);
 const INITIAL_NAMES    = ['ID Verification', 'AML Monitoring', 'KYC Onboarding'];
+const TARGET_Y         = [38, 51, 64].map(i => OFFSET - i * ITEM_H);
+const DURATIONS        = [2800, 3500, 4200];
 
-// Logo at rep2/3/4 for staggered stop
-const TARGET_Y   = [38, 51, 64].map(item => OFFSET - item * ITEM_H);
-const DURATIONS  = [2800, 3500, 4200];
+function easeOutQuint(t){ return 1 - Math.pow(1-t, 5); }
 
-function easeOutQuint(t){ return 1 - Math.pow(1 - t, 5); }
+// ─────────────────────────────────────────────
+//  CACHED DOM REFS
+// ─────────────────────────────────────────────
+const $root     = document.getElementById('scaleRoot');
+const $machine  = document.getElementById('slotMachine');
+const $winGlow  = document.getElementById('winGlow');
+const $winFlash = document.getElementById('winFlash');
+const $sparkles = document.getElementById('sparkleContainer');
+const $shaft    = document.getElementById('leverShaft');
+const $ball     = document.getElementById('leverBall');
+const strips    = [0,1,2].map(i => document.getElementById('strip'+i));
+const reels     = [0,1,2].map(i => document.getElementById('reel'+i));
+const labels    = [0,1,2].map(i => document.getElementById('label'+i));
 
 // ─────────────────────────────────────────────
 //  BUILD STRIP DOM
 // ─────────────────────────────────────────────
 function buildStrips(){
   for(let r=0;r<3;r++){
-    const strip = document.getElementById('strip'+r);
-    strip.innerHTML = '';
+    const frag = document.createDocumentFragment();
     for(let rep=0;rep<NUM_REPS;rep++){
       for(let idx=0;idx<NUM_ICONS;idx++){
         const item = document.createElement('div');
@@ -349,32 +360,31 @@ function buildStrips(){
         icon.className = idx===LOGO_IDX ? 'sm-icon logo-icon' : 'sm-icon';
         icon.innerHTML = ICONS[idx].svg;
         item.appendChild(icon);
-        strip.appendChild(item);
+        frag.appendChild(item);
       }
     }
-    strip.style.transform = `translateY(${INITIAL_Y[r]}px)`;
+    strips[r].innerHTML = '';
+    strips[r].appendChild(frag);
+    strips[r].style.transform = `translateY(${INITIAL_Y[r]}px)`;
   }
 }
 
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let isSpinning  = false;
-let currentY    = [...INITIAL_Y];
-let autoTimer   = null;
-let rafIds      = [null,null,null];
+let isSpinning     = false;
+let currentY       = [...INITIAL_Y];
+let autoTimer      = null;
+let rafIds         = [null,null,null];
 let labelIntervals = [];
-let sparkleId   = 0;
 
 // ─────────────────────────────────────────────
 //  RESET
 // ─────────────────────────────────────────────
 function resetStrips(){
   for(let i=0;i<3;i++){
-    const strip = document.getElementById('strip'+i);
-    strip.style.transition = 'none';
-    strip.style.transform  = `translateY(${INITIAL_Y[i]}px)`;
-    strip.style.filter     = 'none';
+    strips[i].style.cssText += ';transition:none;filter:none';
+    strips[i].style.transform = `translateY(${INITIAL_Y[i]}px)`;
   }
   currentY = [...INITIAL_Y];
 }
@@ -383,44 +393,31 @@ function resetStrips(){
 //  SPARKLES
 // ─────────────────────────────────────────────
 function createSparkles(){
-  const container = document.getElementById('sparkleContainer');
-  container.innerHTML = '';
+  $sparkles.innerHTML = '';
   const colors = ['#c890ff','#a060f8','#ffffff','#e0b8ff','#8040e8'];
+  const frag = document.createDocumentFragment();
   for(let n=0;n<22;n++){
-    const ang = Math.random()*Math.PI*2;
-    const dst = 30 + Math.random()*80;
-    const dx  = Math.cos(ang)*dst;
-    const dy  = Math.sin(ang)*dst;
-    const size= 4 + Math.random()*5;
-    const color = colors[Math.floor(Math.random()*colors.length)];
-    const delay = Math.random()*0.25;
-    const dur   = 0.7 + Math.random()*0.35;
-    const el    = document.createElement('div');
+    const ang  = Math.random()*Math.PI*2;
+    const dst  = 30 + Math.random()*80;
+    const size = 4 + Math.random()*5;
+    const el   = document.createElement('div');
     el.className = 'sparkle';
-    el.style.cssText = `
-      width:${size}px;height:${size}px;
-      left:${10+Math.random()*80}%;
-      top:${10+Math.random()*80}%;
-      background:${color};
-      --dx:${dx}px;--dy:${dy}px;
-      animation:sparkleFly ${dur}s ease-out ${delay}s forwards;
-    `;
-    container.appendChild(el);
-    sparkleId++;
+    el.style.cssText = `width:${size}px;height:${size}px;left:${10+Math.random()*80}%;top:${10+Math.random()*80}%;background:${colors[Math.random()*colors.length|0]};--dx:${Math.cos(ang)*dst}px;--dy:${Math.sin(ang)*dst}px;animation:sparkleFly ${0.7+Math.random()*0.35}s ease-out ${Math.random()*0.25}s forwards`;
+    frag.appendChild(el);
   }
-  setTimeout(()=>{ container.innerHTML=''; }, 1100);
+  $sparkles.appendChild(frag);
+  setTimeout(()=>{ $sparkles.innerHTML=''; }, 1100);
 }
 
 // ─────────────────────────────────────────────
 //  LABELS
 // ─────────────────────────────────────────────
 function setLabel(i, text, won){
-  const el = document.getElementById('label'+i);
-  el.textContent = text;
-  el.className   = 'reel-label' + (won ? ' won' : '');
+  labels[i].textContent = text;
+  labels[i].className   = won ? 'reel-label won' : 'reel-label';
 }
 function setReelWon(i, won){
-  document.getElementById('reel'+i).className = 'reel-window' + (won ? ' won' : '');
+  reels[i].className = won ? 'reel-window won' : 'reel-window';
   setLabel(i, won ? 'Identomat' : INITIAL_NAMES[i], won);
 }
 
@@ -437,45 +434,33 @@ function spin(){
   labelIntervals.forEach(clearInterval);
   labelIntervals = [];
 
-  // Lever press
-  document.getElementById('leverShaft').classList.add('active');
-  document.getElementById('leverBall').classList.add('active');
-  setTimeout(()=>{
-    document.getElementById('leverShaft').classList.remove('active');
-    document.getElementById('leverBall').classList.remove('active');
-  }, 420);
+  $shaft.classList.add('active');
+  $ball.classList.add('active');
+  setTimeout(()=>{ $shaft.classList.remove('active'); $ball.classList.remove('active'); }, 420);
 
-  // Reset won states
   for(let i=0;i<3;i++) setReelWon(i, false);
-  document.getElementById('winGlow').classList.remove('active');
-  document.getElementById('winFlash').classList.remove('active');
+  $winGlow.classList.remove('active');
+  $winFlash.classList.remove('active');
 
-  // Cycle labels while spinning
   const ticks = [1,7,3];
   labelIntervals = [0,1,2].map(i =>
-    setInterval(()=>{
-      ticks[i] = (ticks[i]+1) % (NUM_ICONS-1);
-      setLabel(i, ICONS[ticks[i]].name, false);
-    }, 90)
+    setInterval(()=>{ ticks[i]=(ticks[i]+1)%(NUM_ICONS-1); setLabel(i,ICONS[ticks[i]].name,false); }, 90)
   );
 
   let doneCount = 0;
-
   [0,1,2].forEach(i => {
-    const strip     = document.getElementById('strip'+i);
-    const fromY     = currentY[i];
-    const toY       = TARGET_Y[i];
-    const duration  = DURATIONS[i];
-    const startTime = performance.now();
+    const strip    = strips[i];
+    const fromY    = currentY[i];
+    const toY      = TARGET_Y[i];
+    const dur      = DURATIONS[i];
+    const t0       = performance.now();
 
     function frame(now){
-      const t = Math.min((now - startTime)/duration, 1);
-      const y = fromY + (toY - fromY) * easeOutQuint(t);
+      const t    = Math.min((now-t0)/dur, 1);
+      const y    = fromY + (toY-fromY)*easeOutQuint(t);
+      const blur = Math.min(5*Math.pow(1-t,4)*2.8, 13);
       strip.style.transform = `translateY(${y}px)`;
-
-      const speed  = 5*Math.pow(1-t, 4);
-      const blurPx = Math.min(speed*2.8, 13);
-      strip.style.filter = blurPx > 0.5 ? `blur(${blurPx.toFixed(1)}px)` : 'none';
+      strip.style.filter    = blur > 0.5 ? `blur(${blur.toFixed(1)}px)` : 'none';
 
       if(t < 1){
         rafIds[i] = requestAnimationFrame(frame);
@@ -483,31 +468,20 @@ function spin(){
         strip.style.transform = `translateY(${toY}px)`;
         strip.style.filter    = 'none';
         currentY[i]           = toY;
-
         clearInterval(labelIntervals[i]);
         setReelWon(i, true);
-
-        doneCount++;
-        if(doneCount === 3){
-          // Win effects
-          document.getElementById('winGlow').classList.add('active');
-          const flash = document.getElementById('winFlash');
-          flash.classList.remove('active');
-          void flash.offsetWidth; // force reflow
-          flash.classList.add('active');
-
+        if(++doneCount === 3){
+          $winGlow.classList.add('active');
+          $winFlash.classList.remove('active');
+          void $winFlash.offsetWidth;
+          $winFlash.classList.add('active');
           createSparkles();
-
-          // Notify parent Webflow page
           window.parent.postMessage({type:'SLOT_WIN'}, '*');
-
           autoTimer = setTimeout(()=>{
-            document.getElementById('winGlow').classList.remove('active');
+            $winGlow.classList.remove('active');
             for(let j=0;j<3;j++) setReelWon(j, false);
             resetStrips();
-            requestAnimationFrame(()=>requestAnimationFrame(()=>{
-              isSpinning = false;
-            }));
+            requestAnimationFrame(()=>requestAnimationFrame(()=>{ isSpinning=false; }));
           }, 2800);
         }
       }
@@ -520,21 +494,10 @@ function spin(){
 //  RESPONSIVE SCALING
 // ─────────────────────────────────────────────
 function scaleToFit(){
-  const root    = document.getElementById('scaleRoot');
-  const machine = document.querySelector('.slot-machine');
-  if(!machine) return;
-
-  // Get natural size
-  const naturalW = machine.scrollWidth;
-  const naturalH = machine.scrollHeight;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  const scaleX = vw  / naturalW;
-  const scaleY = vh  / naturalH;
-  const scale  = Math.min(scaleX, scaleY, 1); // never upscale beyond 1
-
-  root.style.transform = `scale(${scale})`;
+  const vw    = window.innerWidth;
+  const natW  = $machine.scrollWidth;
+  const scale = Math.min(vw/natW, 1);
+  $root.style.transform = scale < 1 ? `scale(${scale})` : '';
 }
 
 // ─────────────────────────────────────────────
@@ -543,12 +506,8 @@ function scaleToFit(){
 buildStrips();
 scaleToFit();
 window.addEventListener('resize', scaleToFit);
-
-document.getElementById('leverHousing').addEventListener('click', e=>{
-  e.stopPropagation();
-  spin();
-});
-document.getElementById('slotMachine').addEventListener('click', spin);
+document.getElementById('leverHousing').addEventListener('click', e=>{ e.stopPropagation(); spin(); });
+$machine.addEventListener('click', spin);
 </script>
 </body>
 </html>
