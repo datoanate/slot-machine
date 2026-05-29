@@ -32,10 +32,10 @@ html,body{
 .slot-machine{
   position:relative;
   background:#0c0723;
-  border:2px solid #9c78ff;
+  border:none;
   border-radius:42px;
   padding:12px;
-  box-shadow:0 0 80px rgba(90,30,200,0.35),0 0 160px rgba(90,30,200,0.15);
+  box-shadow:0 0 30px rgba(90,30,200,0.12),0 0 60px rgba(90,30,200,0.06);
   cursor:pointer;
   user-select:none;
 }
@@ -53,8 +53,8 @@ html,body{
   animation:winPulse 0.75s ease-in-out infinite alternate;
 }
 @keyframes winPulse{
-  from{box-shadow:0 0 60px rgba(185,130,255,0.6),0 0 120px rgba(140,80,255,0.4);}
-  to  {box-shadow:0 0 100px rgba(210,165,255,0.9),0 0 180px rgba(160,100,255,0.65);}
+  from{box-shadow:0 0 20px rgba(185,130,255,0.25),0 0 40px rgba(140,80,255,0.12);}
+  to  {box-shadow:0 0 30px rgba(210,165,255,0.35),0 0 55px rgba(160,100,255,0.18);}
 }
 
 /* Win flash */
